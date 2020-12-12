@@ -15,12 +15,12 @@ variable "do_public_key_dir" {
   sensitive = true
 }
 
-# variable "do_region" {
-#   description = "Region to create droplet in"
-#   default = "sgp1"
-# }
+variable "do_region" {
+  description = "Region to create droplet in"
+  default = "sgp1"
+}
 
-# variable "do_droplet_size" {
-#   description = "Droplet Size"
-#   default = "s-1vcpu-1gb"
-# }
+variable "do_droplet_size" {
+  description = "Droplet Size"
+  default = "s-1vcpu-1gb"
+}
