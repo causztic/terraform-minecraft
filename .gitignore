@@ -3,3 +3,4 @@ terraform.tfvars
 backend/.terraform.lock.hcl
 backend/terraform.tfstate
 main/provider.tf
+.DS_Store
