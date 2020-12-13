@@ -30,7 +30,3 @@ resource "aws_dynamodb_table" "terraform_locks" {
     type = "S"
   }
 }
-
-resource "aws_ebs_volume" "minecraft" {
-  availability_zone = "ap-southeast-1a"
-}

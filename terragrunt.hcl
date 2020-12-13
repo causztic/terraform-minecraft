@@ -4,7 +4,7 @@ remote_state {
   config = {
     bucket = "graf-tf-states"
     region = "ap-southeast-1"
-    key    = "terraform.tfstate"
+    key    = "${path_relative_to_include()}/terraform.tfstate"
     encrypt = true
 
     dynamodb_table = "tf-locks"
@@ -23,8 +23,24 @@ generate "provider" {
   path = "provider.tf"
   if_exists = "overwrite_terragrunt"
   contents = <<EOF
-    provider "aws" {
-      region = var.aws_region
+  provider "aws" {
+    region = var.aws_region
+  }
+  EOF
+}
+
+generate "versions" {
+  path = "versions.tf"
+  if_exists = "overwrite_terragrunt"
+  contents = <<EOF
+  terraform {
+    required_version = ">= 0.14"
+    required_providers {
+      aws = {
+        source  = "hashicorp/aws"
+        version = "~> 3.21"
+      }
     }
+  }
   EOF
 }

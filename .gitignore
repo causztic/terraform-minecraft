@@ -2,5 +2,7 @@
 terraform.tfvars
 backend/.terraform.lock.hcl
 backend/terraform.tfstate
-main/provider.tf
+backend/terraform.tfstate.backup
+provider.tf
+versions.tf
 .DS_Store
