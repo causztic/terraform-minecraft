@@ -13,20 +13,29 @@ data "terraform_remote_state" "volume" {
   }
 }
 
-# resource "aws_ecs_task_definition" "service" {
-#   family                = "service"
-#   container_definitions = file("task-definitions/service.json")
+resource "aws_ecs_task_definition" "service" {
+  family                = "service"
+  container_definitions = file("task-definitions/service.json")
+  requires_compatibilities = [ "EC2" ]
 
-#   volume {
-#     name      = "service-storage"
-#     host_path = "/usr/src/app"
-#   }
+  volume {
+    name = "minecraft-volume"
 
-#   placement_constraints {
-#     type       = "memberOf"
-#     expression = "attribute:ecs.availability-zone in [ap-southeast-1a, ap-southeast-1b, ap-southeast-1c]"
-#   }
-# }
+    docker_volume_configuration {
+      scope = "shared"
+      autoprovision = "false"
+      driver = "rexray/ebs"
+      driver_opts = {
+        volumeID = data.terraform_remote_state.volume.outputs.ebs_volume_id
+      }
+    }
+  }
+
+  placement_constraints {
+    type       = "memberOf"
+    expression = "attribute:ecs.availability-zone in [ap-southeast-1a, ap-southeast-1b, ap-southeast-1c]"
+  }
+}
 
 
 # resource "aws_ecs_service" "minecraft" {
