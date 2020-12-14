@@ -13,8 +13,21 @@ data "terraform_remote_state" "volume" {
   }
 }
 
-resource "aws_ecs_task_definition" "service" {
-  family                = "service"
+resource "aws_ecs_service" "minecraft" {
+  name = "minecraft"
+  cluster         = aws_ecs_cluster.minecraft.id
+  task_definition = aws_ecs_task_definition.minecraft.arn
+  desired_count   = 1
+  security_groups = [aws_security_group.minecraft]
+
+  placement_constraints {
+    type       = "memberOf"
+    expression = "attribute:ecs.availability-zone in [ap-southeast-1a, ap-southeast-1b, ap-southeast-1c]"
+  }
+}
+
+resource "aws_ecs_task_definition" "minecraft" {
+  family                = "minecraft"
   container_definitions = file("task-definitions/service.json")
   requires_compatibilities = [ "EC2" ]
 
@@ -30,16 +43,4 @@ resource "aws_ecs_task_definition" "service" {
       }
     }
   }
-
-  placement_constraints {
-    type       = "memberOf"
-    expression = "attribute:ecs.availability-zone in [ap-southeast-1a, ap-southeast-1b, ap-southeast-1c]"
-  }
 }
-
-
-# resource "aws_ecs_service" "minecraft" {
-#   name            = "minecraft"
-#   task_definition = aws_ecs_task_definition.service.arn
-#   desired_count   = 1
-# }
