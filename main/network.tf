@@ -1,5 +1,5 @@
 resource "aws_vpc" "vpc" {
-  cidr_block           = "10.0.0.0/24"
+  cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
 
@@ -14,7 +14,7 @@ resource "aws_internet_gateway" "gateway" {
 
 resource "aws_subnet" "public" {
   vpc_id     = aws_vpc.vpc.id
-  cidr_block = "10.1.0.0/22"
+  cidr_block = "10.0.0.0/24"
 }
 
 resource "aws_route_table" "public" {

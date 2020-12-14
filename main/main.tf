@@ -33,8 +33,10 @@ data "aws_ami" "ecs" {
 }
 
 resource "aws_launch_configuration" "ecs_launch_config" {
-  image_id        = data.aws_ami.ecs.id
-  instance_type   = "t3.nano"
+  image_id                    = data.aws_ami.ecs.id
+  ebs_optimized               = true
+  associate_public_ip_address = true
+  instance_type               = "t3.nano"
 }
 
 resource "aws_autoscaling_group" "asg" {
