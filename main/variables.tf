@@ -34,6 +34,22 @@ variable "min_memory" {
 }
 variable "max_memory" {
   type        = string
-  default     = "512M"
+  default     = "960M"
   description = "Maximum memory for the server"
+}
+
+variable "instance_type" {
+  type        = string
+  default     = "t3a.micro"
+  description = "size of EC2 instance"
+}
+
+variable "cloudflare_api_token" {
+  type        = string
+  description = "API token to access the cloudflare account"
+}
+
+variable "cloudflare_zone_id" {
+  type        = string
+  description = "Zone ID of the root domain"
 }

@@ -2,6 +2,15 @@ terraform {
   backend "s3" {}
 }
 
+module "cloudflare" {
+  source = "git::git@github.com:terrajungles/cloudflare.git"
+
+  cloudflare_api_token = var.cloudflare_api_token
+  subdomain            = "mc"
+  ip_address           = aws_instance.web.public_ip
+  zone_id              = var.cloudflare_zone_id
+}
+
 data "terraform_remote_state" "volume" {
   backend = "s3"
 
@@ -37,7 +46,7 @@ resource "aws_key_pair" "admin" {
 }
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.ami.id
-  instance_type               = "t3.nano"
+  instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.minecraft.id]
   associate_public_ip_address = true
   subnet_id                   = aws_subnet.public.id
@@ -51,6 +60,7 @@ resource "aws_instance" "web" {
   user_data = templatefile("scripts/startup.sh", local.script_variables)
   depends_on = [aws_internet_gateway.gateway]
 }
+
 resource "aws_volume_attachment" "ebs_att" {
   device_name  = var.device_name
   skip_destroy = true
