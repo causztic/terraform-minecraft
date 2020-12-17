@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "instance_type" {
   type        = string
   description = "Size of the server"
-  default     = "t3.nano"
+  default     = "t3a.micro"
 }
 
 variable "aws_az" {
@@ -36,12 +36,6 @@ variable "max_memory" {
   type        = string
   default     = "960M"
   description = "Maximum memory for the server"
-}
-
-variable "instance_type" {
-  type        = string
-  default     = "t3a.micro"
-  description = "size of EC2 instance"
 }
 
 variable "cloudflare_api_token" {
