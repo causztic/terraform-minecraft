@@ -26,3 +26,14 @@ variable "device_name" {
   default     = "/dev/sdh"
   description = "Device name for EBS"
 }
+
+variable "min_memory" {
+  type        = string
+  default     = "512M"
+  description = "Minimum memory for the server"
+}
+variable "max_memory" {
+  type        = string
+  default     = "512M"
+  description = "Maximum memory for the server"
+}

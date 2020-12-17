@@ -61,5 +61,7 @@ resource "aws_volume_attachment" "ebs_att" {
 locals {
   script_variables = {
     device_name = var.device_name
+    min = var.min_memory
+    max = var.max_memory
   }
 }
