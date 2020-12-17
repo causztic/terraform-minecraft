@@ -3,6 +3,6 @@ terraform {
 }
 
 resource "aws_ebs_volume" "minecraft" {
-  availability_zone = "ap-southeast-1a"
+  availability_zone = var.aws_az
   size = 1
 }

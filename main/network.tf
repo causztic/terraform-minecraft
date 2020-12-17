@@ -13,8 +13,9 @@ resource "aws_internet_gateway" "gateway" {
 }
 
 resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = "10.0.0.0/24"
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.0.0/24"
+  availability_zone = var.aws_az
 }
 
 resource "aws_route_table" "public" {
@@ -35,9 +36,9 @@ resource "aws_security_group" "minecraft" {
   vpc_id = aws_vpc.vpc.id
 
   ingress {
-    description = "test ingress for http"
-    from_port = 80
-    to_port = 80
+    description = "ingress for ssh"
+    from_port = 22
+    to_port = 22
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

@@ -31,19 +31,35 @@ data "aws_ami" "ami" {
     values = ["hvm"]
   }
 }
-
-
+resource "aws_key_pair" "admin" {
+  key_name   = "minecraft-admin-key"
+  public_key = file(var.ec2_public_key)
+}
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.ami.id
   instance_type               = "t3.nano"
   vpc_security_group_ids      = [aws_security_group.minecraft.id]
   associate_public_ip_address = true
   subnet_id                   = aws_subnet.public.id
+  availability_zone           = var.aws_az
+  key_name                    = aws_key_pair.admin.key_name
 
   tags = {
     Name = "minecraft"
   }
 
-  user_data = file("scripts/startup.sh")
+  user_data = templatefile("scripts/startup.sh", local.script_variables)
   depends_on = [aws_internet_gateway.gateway]
+}
+resource "aws_volume_attachment" "ebs_att" {
+  device_name  = var.device_name
+  skip_destroy = true
+  volume_id    = data.terraform_remote_state.volume.outputs.ebs_volume_id
+  instance_id  = aws_instance.web.id
+}
+
+locals {
+  script_variables = {
+    device_name = var.device_name
+  }
 }
