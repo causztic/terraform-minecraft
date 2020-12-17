@@ -43,6 +43,22 @@ resource "aws_security_group" "minecraft" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "ingress for rcon"
+    from_port = 25565
+    to_port = 25565
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "ingress for minecraft"
+    from_port = 25575
+    to_port = 25575
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description = "allow all outbound traffic"
     from_port   = 0

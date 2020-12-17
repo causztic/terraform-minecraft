@@ -27,7 +27,7 @@ data "aws_ami" "ami" {
 
   filter {
     name   = "name"
-    values = ["amzn-ami*"]
+    values = ["amzn2-ami*"]
   }
 
   filter {
