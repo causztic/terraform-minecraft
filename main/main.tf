@@ -1,14 +1,13 @@
 terraform {
   backend "s3" {}
 }
-
-module "cloudflare" {
-  source = "git::git@github.com:terrajungles/cloudflare.git"
-
-  cloudflare_api_token = var.cloudflare_api_token
-  subdomain            = "mc"
-  ip_address           = aws_instance.web.public_ip
-  zone_id              = var.cloudflare_zone_id
+resource "cloudflare_record" "minecraft" {
+  zone_id = var.cloudflare_zone_id
+  name = "mc"
+  value = aws_instance.web.public_ip
+  type = "A"
+  proxied = true
+  depends_on = [aws_instance.web]
 }
 
 data "terraform_remote_state" "volume" {

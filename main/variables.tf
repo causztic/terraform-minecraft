@@ -38,6 +38,11 @@ variable "max_memory" {
   description = "Maximum memory for the server"
 }
 
+variable "cloudflare_email" {
+  type        = string
+  description = "Email of cloudflare account"
+}
+
 variable "cloudflare_api_token" {
   type        = string
   description = "API token to access the cloudflare account"

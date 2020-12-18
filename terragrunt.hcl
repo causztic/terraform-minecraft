@@ -26,6 +26,9 @@ generate "provider" {
   provider "aws" {
     region = var.aws_region
   }
+  provider "cloudflare" {
+    api_token = var.cloudflare_api_token
+  }
   EOF
 }
 
@@ -39,6 +42,10 @@ generate "versions" {
       aws = {
         source  = "hashicorp/aws"
         version = "~> 3.21"
+      }
+      cloudflare = {
+        source  = "cloudflare/cloudflare"
+        version = "~> 2.0"
       }
     }
   }
