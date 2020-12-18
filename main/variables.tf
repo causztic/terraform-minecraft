@@ -52,3 +52,8 @@ variable "cloudflare_zone_id" {
   type        = string
   description = "Zone ID of the root domain"
 }
+
+variable "rcon_password" {
+  type        = string
+  description = "Password for rcon"
+}
