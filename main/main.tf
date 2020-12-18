@@ -6,7 +6,6 @@ resource "cloudflare_record" "minecraft" {
   name = "mc"
   value = aws_instance.web.public_ip
   type = "A"
-  proxied = true
   depends_on = [aws_instance.web]
 }
 
