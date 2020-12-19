@@ -21,21 +21,16 @@ data "terraform_remote_state" "volume" {
 }
 data "aws_ami" "ami" {
   most_recent = true
-  owners      = ["amazon"]
+  owners      = ["aws-marketplace"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic*"]
   }
 
   filter {
     name   = "architecture"
     values = ["x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
   }
 }
 resource "aws_key_pair" "admin" {
@@ -57,6 +52,28 @@ resource "aws_instance" "web" {
 
   user_data = templatefile("scripts/startup.sh", local.script_variables)
   depends_on = [aws_internet_gateway.gateway]
+
+  provisioner "file" {
+    content     = templatefile("scripts/server.properties", local.server_properties)
+    destination = "/tmp/server.properties"
+
+    connection {
+      user        = "ec2-user"
+      private_key = file(var.ec2_private_key)
+      host        = self.public_ip
+    }
+  }
+  # provisioner "local-exec" {
+  #   when    = destroy
+  #   command = <<EOT
+  #    curl -v \
+  #     -H "Authorization: Bot ${var.discord_bot_token}" \
+  #     -H "Content-Type: application/json" \
+  #     -X POST \
+  #     -d '{"content":"server down!"}' \
+  #     https://discordapp.com/api/channels/${var.discord_channel_id}/messages"
+  #   EOT
+  # }
 }
 
 resource "aws_volume_attachment" "ebs_att" {
@@ -67,11 +84,15 @@ resource "aws_volume_attachment" "ebs_att" {
 }
 
 locals {
+  server_properties = {
+    motd = "A Minecraft Server"
+    rcon_password = var.rcon_password
+  }
   script_variables = {
     device_name = var.device_name
     min = var.min_memory
     max = var.max_memory
-    motd = "A Minecraft Server"
-    rcon_password = var.rcon_password
+    discord_bot_token = var.discord_bot_token
+    discord_channel_id = var.discord_channel_id
   }
 }

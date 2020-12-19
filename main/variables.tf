@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "instance_type" {
   type        = string
   description = "Size of the server"
-  default     = "t3a.micro"
+  default     = "t3a.small"
 }
 
 variable "aws_az" {
@@ -16,9 +16,15 @@ variable "aws_az" {
   default = "ap-southeast-1a"
 }
 variable "ec2_public_key" {
-  type        = string
   sensitive   = true
-  description = "Public key of the keypair to SSH into the EC2 instance"
+  type        = string
+  description = "Directory of public key to SSH into the EC2 instance"
+}
+
+variable "ec2_private_key" {
+  sensitive   = true
+  type        = string
+  description = "Directory of private key for file provisioning to EC2"
 }
 
 variable "device_name" {
@@ -34,7 +40,7 @@ variable "min_memory" {
 }
 variable "max_memory" {
   type        = string
-  default     = "960M"
+  default     = "512M"
   description = "Maximum memory for the server"
 }
 
@@ -49,6 +55,7 @@ variable "cloudflare_api_token" {
 }
 
 variable "cloudflare_zone_id" {
+  sensitive   = true
   type        = string
   description = "Zone ID of the root domain"
 }
@@ -56,4 +63,14 @@ variable "cloudflare_zone_id" {
 variable "rcon_password" {
   type        = string
   description = "Password for rcon"
+}
+
+variable "discord_bot_token" {
+  type        = string
+  description = "Discord Bot Token"
+}
+
+variable "discord_channel_id" {
+  type = string
+  description = "Discord Channel ID"
 }
