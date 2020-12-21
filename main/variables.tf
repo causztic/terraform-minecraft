@@ -35,13 +35,19 @@ variable "device_name" {
 
 variable "min_memory" {
   type        = string
-  default     = "512M"
+  default     = "1G"
   description = "Minimum memory for the server"
 }
+
 variable "max_memory" {
   type        = string
-  default     = "512M"
+  default     = "1G"
   description = "Maximum memory for the server"
+}
+
+variable "mc_version" {
+  type        = string
+  description =  "Version of the server"
 }
 
 variable "cloudflare_email" {

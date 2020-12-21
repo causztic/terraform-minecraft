@@ -19,26 +19,14 @@ data "terraform_remote_state" "volume" {
     dynamodb_table = "tf-locks"
   }
 }
-data "aws_ami" "ami" {
-  most_recent = true
-  owners      = ["aws-marketplace"]
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic*"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
 resource "aws_key_pair" "admin" {
   key_name   = "minecraft-admin-key"
   public_key = file(var.ec2_public_key)
 }
+
 resource "aws_instance" "web" {
-  ami                         = data.aws_ami.ami.id
+  ami                         = "ami-0d728fd4e52be968f"
   instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.minecraft.id]
   associate_public_ip_address = true
@@ -63,17 +51,6 @@ resource "aws_instance" "web" {
       host        = self.public_ip
     }
   }
-  # provisioner "local-exec" {
-  #   when    = destroy
-  #   command = <<EOT
-  #    curl -v \
-  #     -H "Authorization: Bot ${var.discord_bot_token}" \
-  #     -H "Content-Type: application/json" \
-  #     -X POST \
-  #     -d '{"content":"server down!"}' \
-  #     https://discordapp.com/api/channels/${var.discord_channel_id}/messages"
-  #   EOT
-  # }
 }
 
 resource "aws_volume_attachment" "ebs_att" {
@@ -92,7 +69,8 @@ locals {
     device_name = var.device_name
     min = var.min_memory
     max = var.max_memory
-    discord_bot_token = var.discord_bot_token
+    discord_bot_token  = var.discord_bot_token
     discord_channel_id = var.discord_channel_id
+    mc_version         = var.mc_version
   }
 }

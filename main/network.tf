@@ -44,6 +44,15 @@ resource "aws_security_group" "minecraft" {
   }
 
   ingress {
+    description = "ingress for http"
+    from_port = 80
+    to_port = 8123
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+  ingress {
     description = "ingress for rcon"
     from_port = 25565
     to_port = 25565

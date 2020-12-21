@@ -6,3 +6,4 @@ backend/terraform.tfstate.backup
 provider.tf
 versions.tf
 .DS_Store
+plugins
