@@ -12,7 +12,8 @@ if [ ! -f "/minecraft/BuildTools.jar" ]; then
 fi
 
 mv /tmp/server.properties /minecraft
-mv /tmp/plugins/* /minecraft/plugins
+# wget -P /minecraft/plugins http://dynmap.us/releases/Dynmap-3.1-beta5-spigot.jar
+
 cd /minecraft && setsid nohup java -Xms${min} -Xmx${max} -jar spigot-${mc_version}.jar nogui &
 
 curl -v \

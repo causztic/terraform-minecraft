@@ -44,8 +44,8 @@ resource "aws_security_group" "minecraft" {
   }
 
   ingress {
-    description = "ingress for http"
-    from_port = 80
+    description = "ingress for dynmap"
+    from_port = 8123
     to_port = 8123
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
