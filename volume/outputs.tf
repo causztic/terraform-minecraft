@@ -1,4 +1,4 @@
-output "ebs_volume_id" {
-  description = "EBS volume ID"
-  value       = aws_ebs_volume.minecraft.id
+output "efs_volume_id" {
+  description = "EFS volume ID"
+  value       = aws_efs_file_system.minecraft.id
 }
