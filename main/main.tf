@@ -30,10 +30,13 @@ module "vpc" {
   name                 = "mc"
   cidr                 = "10.10.10.0/24"
   azs                  = ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]
-  intra_subnets        = ["10.10.10.0/27"]
+
+  private_subnets      = ["10.10.10.128/27"]
   public_subnets       = ["10.10.10.96/27"]
-  # enable_nat_gateway   = true
-  # single_nat_gateway   = true
+  # intra_subnets        = ["10.10.10.0/27"]
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
   enable_dns_hostnames = true
   enable_dns_support   = true
 }
@@ -51,6 +54,14 @@ resource "aws_security_group" "mc" {
     cidr_blocks      = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description      = "Image pulling"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port        = 0
     to_port          = 0
@@ -59,9 +70,9 @@ resource "aws_security_group" "mc" {
   }
 }
 
-resource "aws_security_group" "private" {
-  name        = "EFS"
-  description = "Allow everything private"
+resource "aws_security_group" "intra" {
+  name        = "intra"
+  description = "Allow everything to move around in intranet"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -83,8 +94,8 @@ resource "aws_efs_file_system" "minecraft" {}
 
 resource "aws_efs_mount_target" "minecraft" {
   file_system_id  = aws_efs_file_system.minecraft.id
-  subnet_id       = module.vpc.intra_subnets[0]
-  security_groups = [aws_security_group.private.id]
+  subnet_id       = module.vpc.private_subnets[0]
+  security_groups = [aws_security_group.intra.id]
 }
 
 resource "aws_ecs_cluster" "minecraft" {
@@ -112,8 +123,8 @@ resource "aws_ecs_service" "minecraft" {
   task_definition = aws_ecs_task_definition.minecraft.arn
 
   network_configuration {
-    subnets = module.vpc.intra_subnets
-    security_groups = [aws_security_group.private.id, aws_security_group.mc.id]
+    subnets = module.vpc.private_subnets
+    security_groups = [aws_security_group.intra.id, aws_security_group.mc.id]
     assign_public_ip = true
   }
 }
