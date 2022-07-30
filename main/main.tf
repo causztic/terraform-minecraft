@@ -23,79 +23,11 @@ data "terraform_remote_state" "volume" {
   }
 }
 
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 3.14.2"
-
-  name                 = "mc"
-  cidr                 = "10.10.10.0/24"
-  azs                  = ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]
-
-  private_subnets      = ["10.10.10.128/27"]
-  public_subnets       = ["10.10.10.96/27"]
-  # intra_subnets        = ["10.10.10.0/27"]
-
-  enable_nat_gateway   = true
-  single_nat_gateway   = true
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-}
-
-resource "aws_security_group" "mc" {
-  name        = "Minecraft"
-  description = "Allow public connections"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description      = "Minecraft port"
-    from_port        = 25565
-    to_port          = 25565
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description      = "Image pulling"
-    from_port        = 443
-    to_port          = 443
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "intra" {
-  name        = "intra"
-  description = "Allow everything to move around in intranet"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = [module.vpc.vpc_cidr_block]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = [module.vpc.vpc_cidr_block]
-  }
-}
-
 resource "aws_efs_file_system" "minecraft" {}
 
 resource "aws_efs_mount_target" "minecraft" {
   file_system_id  = aws_efs_file_system.minecraft.id
-  subnet_id       = module.vpc.private_subnets[0]
-  security_groups = [aws_security_group.intra.id]
+  subnet_id       = aws_subnet.public.id
 }
 
 resource "aws_ecs_cluster" "minecraft" {
@@ -123,29 +55,49 @@ resource "aws_ecs_service" "minecraft" {
   task_definition = aws_ecs_task_definition.minecraft.arn
 
   network_configuration {
-    subnets = module.vpc.private_subnets
-    security_groups = [aws_security_group.intra.id, aws_security_group.mc.id]
-    assign_public_ip = true
+    subnets = [aws_subnet.public.id]
+    security_groups = [aws_security_group.minecraft.id]
+    # assign_public_ip = true
   }
+}
+
+data "aws_iam_policy" "ecs" {
+  name = "AmazonECSTaskExecutionRolePolicy"
+}
+
+data "aws_iam_policy" "log" {
+  name = "CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecsTaskExecutionRole"
+  managed_policy_arns = [data.aws_iam_policy.ecs.arn, data.aws_iam_policy.log.arn]
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
 }
 
 resource "aws_ecs_task_definition" "minecraft" {
   family                   = "minecraft"
   network_mode             = "awsvpc"
   container_definitions    = file("task-definitions/minecraft.json")
-  // "logConfiguration": {
-  //   "logDriver": "awslogs",
-  //   "options": {
-  //       "awslogs-group": "mc",
-  //       "awslogs-region": "ap-southeast-1",
-  //       "awslogs-create-group": "true",
-  //       "awslogs-stream-prefix": "mc"
-  //   }
-  // },
 
   requires_compatibilities = ["FARGATE"]
   memory                   = 2048
   cpu                      = 1024
+
+  execution_role_arn       = resource.aws_iam_role.ecs_task_execution_role.arn
 
   volume {
     name = "minecraft"

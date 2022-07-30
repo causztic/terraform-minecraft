@@ -5,6 +5,19 @@
     "cpu": 1,
     "memory": 2048,
     "essential": true,
+    "environment": [
+      {"name": "EULA", "value": "TRUE"},
+      {"name": "MEMORY", "value": "2G"}
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+          "awslogs-group": "mc",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-create-group": "true",
+          "awslogs-stream-prefix": "mc"
+      }
+    },
     "mountPoints": [
       {
           "containerPath": "/data",
