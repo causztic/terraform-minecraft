@@ -5,14 +5,6 @@
     "cpu": 1,
     "memory": 2048,
     "essential": true,
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-          "awslogs-group": "mc",
-          "awslogs-region": "ap-southeast-1",
-          "awslogs-create-group": "true"
-      }
-    },
     "mountPoints": [
       {
           "containerPath": "/data",

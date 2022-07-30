@@ -27,13 +27,15 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 3.14.2"
 
-  name               = "mc"
-  cidr               = "10.10.10.0/24"
-  azs                = ["ap-southeast-1a"]
-  private_subnets    = ["10.10.10.0/27"]
-  public_subnets     = ["10.10.10.96/27"]
-  enable_nat_gateway = true
-  single_nat_gateway = true
+  name                 = "mc"
+  cidr                 = "10.10.10.0/24"
+  azs                  = ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]
+  intra_subnets        = ["10.10.10.0/27"]
+  public_subnets       = ["10.10.10.96/27"]
+  # enable_nat_gateway   = true
+  # single_nat_gateway   = true
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 }
 
 resource "aws_security_group" "mc" {
@@ -81,7 +83,7 @@ resource "aws_efs_file_system" "minecraft" {}
 
 resource "aws_efs_mount_target" "minecraft" {
   file_system_id  = aws_efs_file_system.minecraft.id
-  subnet_id       = module.vpc.private_subnets[0]
+  subnet_id       = module.vpc.intra_subnets[0]
   security_groups = [aws_security_group.private.id]
 }
 
@@ -106,12 +108,11 @@ resource "aws_ecs_service" "minecraft" {
   cluster       = aws_ecs_cluster.minecraft.id
   desired_count = 1
   launch_type   = "FARGATE"
-  platform_version = "1.4.0"
 
   task_definition = aws_ecs_task_definition.minecraft.arn
 
   network_configuration {
-    subnets = module.vpc.private_subnets
+    subnets = module.vpc.intra_subnets
     security_groups = [aws_security_group.private.id, aws_security_group.mc.id]
     assign_public_ip = true
   }
@@ -121,6 +122,15 @@ resource "aws_ecs_task_definition" "minecraft" {
   family                   = "minecraft"
   network_mode             = "awsvpc"
   container_definitions    = file("task-definitions/minecraft.json")
+  // "logConfiguration": {
+  //   "logDriver": "awslogs",
+  //   "options": {
+  //       "awslogs-group": "mc",
+  //       "awslogs-region": "ap-southeast-1",
+  //       "awslogs-create-group": "true",
+  //       "awslogs-stream-prefix": "mc"
+  //   }
+  // },
 
   requires_compatibilities = ["FARGATE"]
   memory                   = 2048
