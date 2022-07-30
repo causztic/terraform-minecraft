@@ -1,7 +1,7 @@
 [
   {
     "name": "minecraft",
-    "image": "ruippeixotog/spigot",
+    "image": "itzg/minecraft-server",
     "cpu": 1,
     "memory": 2048,
     "essential": true,
