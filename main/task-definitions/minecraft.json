@@ -5,6 +5,12 @@
     "cpu": 1,
     "memory": 2048,
     "essential": true,
+    "mountPoints": [
+      {
+          "containerPath": "/data",
+          "sourceVolume": "minecraft"
+      }
+    ],
     "portMappings": [
       {
         "containerPort": 25565,

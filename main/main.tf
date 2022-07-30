@@ -23,6 +23,69 @@ data "terraform_remote_state" "volume" {
   }
 }
 
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 3.14.2"
+
+  name               = "mc"
+  cidr               = "10.10.10.0/24"
+  azs                = ["ap-southeast-1a", "ap-southeast-1b"]
+  private_subnets    = ["10.10.10.0/27"]
+  public_subnets     = ["10.10.10.96/27"]
+  enable_nat_gateway = true
+  single_nat_gateway = true
+}
+
+resource "aws_security_group" "mc" {
+  name        = "Minecraft"
+  description = "Allow public connections"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description      = "Minecraft port"
+    from_port        = 25565
+    to_port          = 25565
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "efs" {
+  name        = "EFS"
+  description = "Allow EFS connection from ECS"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description      = "NFS for ECS"
+    from_port        = 2049
+    to_port          = 2049
+    protocol         = "tcp"
+    cidr_blocks      = [module.vpc.vpc_cidr_block]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = [module.vpc.vpc_cidr_block]
+  }
+}
+
+resource "aws_efs_file_system" "minecraft" {}
+
+resource "aws_efs_mount_target" "minecraft" {
+  file_system_id  = aws_efs_file_system.minecraft.id
+  subnet_id       = module.vpc.private_subnets[0]
+  security_groups = [aws_security_group.efs.id]
+}
+
 resource "aws_ecs_cluster" "minecraft" {
   name = "minecraft"
 }
@@ -39,64 +102,20 @@ resource "aws_ecs_cluster_capacity_providers" "minecraft" {
   }
 }
 
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 3.14.2"
-
-  name               = "mc"
-  cidr               = "10.10.10.0/24"
-  azs                = ["ap-southeast-1a", "ap-southeast-1b"]
-  private_subnets    = ["10.10.10.0/27"]
-  public_subnets     = ["10.10.10.96/27"]
-  enable_nat_gateway = true
-  single_nat_gateway = true
-}
-
 resource "aws_ecs_service" "minecraft" {
   name          = "minecraft"
   cluster       = aws_ecs_cluster.minecraft.id
   desired_count = 1
   launch_type   = "FARGATE"
+  platform_version = "1.4.0"
 
   task_definition = aws_ecs_task_definition.minecraft.arn
 
   network_configuration {
     subnets = module.vpc.private_subnets
-    assign_public_ip = true
+    security_groups = [aws_security_group.efs.id, aws_security_group.mc.id]
+    assign_public_ip = false
   }
-}
-
-resource "aws_security_group" "efs" {
-  name        = "EFS"
-  description = "Allow EFS connection from ECS"
-  vpc_id      = module.vpc.default_vpc_id
-
-  ingress {
-    description      = "NFS from ECS"
-    from_port        = 2049
-    to_port          = 2049
-    protocol         = "tcp"
-    cidr_blocks      = [module.vpc.vpc_cidr_block]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = [module.vpc.vpc_cidr_block]
-  }
-
-  tags = {
-    Name = "allow_tls"
-  }
-}
-
-resource "aws_efs_file_system" "minecraft" {}
-
-resource "aws_efs_mount_target" "minecraft" {
-  file_system_id  = aws_efs_file_system.minecraft.id
-  subnet_id       = module.vpc.private_subnets[0]
-  security_groups = aws_security_group.efs
 }
 
 resource "aws_ecs_task_definition" "minecraft" {
