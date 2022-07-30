@@ -29,7 +29,7 @@ module "vpc" {
 
   name               = "mc"
   cidr               = "10.10.10.0/24"
-  azs                = ["ap-southeast-1a", "ap-southeast-1b"]
+  azs                = ["ap-southeast-1a"]
   private_subnets    = ["10.10.10.0/27"]
   public_subnets     = ["10.10.10.96/27"]
   enable_nat_gateway = true
@@ -57,16 +57,15 @@ resource "aws_security_group" "mc" {
   }
 }
 
-resource "aws_security_group" "efs" {
+resource "aws_security_group" "private" {
   name        = "EFS"
-  description = "Allow EFS connection from ECS"
+  description = "Allow everything private"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description      = "NFS for ECS"
-    from_port        = 2049
-    to_port          = 2049
-    protocol         = "tcp"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
     cidr_blocks      = [module.vpc.vpc_cidr_block]
   }
 
@@ -83,7 +82,7 @@ resource "aws_efs_file_system" "minecraft" {}
 resource "aws_efs_mount_target" "minecraft" {
   file_system_id  = aws_efs_file_system.minecraft.id
   subnet_id       = module.vpc.private_subnets[0]
-  security_groups = [aws_security_group.efs.id]
+  security_groups = [aws_security_group.private.id]
 }
 
 resource "aws_ecs_cluster" "minecraft" {
@@ -113,8 +112,8 @@ resource "aws_ecs_service" "minecraft" {
 
   network_configuration {
     subnets = module.vpc.private_subnets
-    security_groups = [aws_security_group.efs.id, aws_security_group.mc.id]
-    assign_public_ip = false
+    security_groups = [aws_security_group.private.id, aws_security_group.mc.id]
+    assign_public_ip = true
   }
 }
 
@@ -131,7 +130,6 @@ resource "aws_ecs_task_definition" "minecraft" {
     name = "minecraft"
 
     efs_volume_configuration {
-      root_directory = "/data"
       file_system_id = aws_efs_file_system.minecraft.id
     }
   }
