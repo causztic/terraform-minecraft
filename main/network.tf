@@ -51,8 +51,8 @@ resource "aws_security_group" "minecraft" {
 
   ingress {
     description = "NFS"
-    from_port = 2409
-    to_port = 2409
+    from_port = 2049
+    to_port = 2049
     protocol = "tcp"
     cidr_blocks = [aws_subnet.public.cidr_block]
   }
