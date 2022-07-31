@@ -3,7 +3,6 @@ terraform {
 }
 
 # TODO: Add cloudwatch rule to get task Public IP to update cloudflare
-#
 # resource "cloudflare_record" "minecraft" {
 #   zone_id = var.cloudflare_zone_id
 #   name = "mc"
@@ -58,7 +57,7 @@ resource "aws_ecs_service" "minecraft" {
   network_configuration {
     subnets = [aws_subnet.public.id]
     security_groups = [aws_security_group.efs.id, aws_security_group.minecraft.id]
-    assign_public_ip = true
+    # assign_public_ip = true
   }
 }
 

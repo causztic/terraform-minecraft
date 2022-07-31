@@ -91,6 +91,14 @@ resource "aws_security_group" "minecraft" {
   vpc_id = aws_vpc.vpc.id
 
   ingress {
+    description = "allow all internal communication"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_subnet.public.cidr_block]
+  }
+
+  ingress {
     description = "TLS for image pulling"
     from_port = 443
     to_port = 443
