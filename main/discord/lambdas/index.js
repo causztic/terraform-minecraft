@@ -1,3 +1,5 @@
+const nacl = require('tweetnacl');
+
 exports.handler = async (event) => {
   const PUBLIC_KEY = process.env.PUBLIC_KEY;
   const signature = event.headers['x-signature-ed25519']
@@ -17,7 +19,6 @@ exports.handler = async (event) => {
     };
   }
 
-
   // Replying to ping (requirement 2.)
   const body = JSON.parse(strBody)
   if (body.type == 1) {
@@ -29,10 +30,15 @@ exports.handler = async (event) => {
 
   // Handle /sample Command
   if (body.data.name == 'sample') {
-    return JSON.stringify({  // Note the absence of statusCode
-      "type": 4,  // This type stands for answer with invocation shown
-      "data": { "content": "sample" }
-    })
+    return {
+      statusCode: 200,
+      body: JSON.stringify(
+        {
+          "type": 4,
+          "content": "this is a sample"
+        }
+      )
+    }
   }
 
 
