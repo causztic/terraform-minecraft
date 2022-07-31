@@ -1,13 +1,15 @@
 terraform {
   backend "s3" {}
 }
-resource "cloudflare_record" "minecraft" {
-  zone_id = var.cloudflare_zone_id
-  name = "mc"
-  value = aws_instance.web.public_ip
-  type = "A"
-  depends_on = [aws_instance.web]
-}
+
+# TODO: Add cloudwatch rule to get task Public IP to update cloudflare
+# resource "cloudflare_record" "minecraft" {
+#   zone_id = var.cloudflare_zone_id
+#   name = "mc"
+#   value = aws_ecs_service.minecraft.public_ip
+#   type = "A"
+#   depends_on = [aws_ecs_service.minecraft]
+# }
 
 data "terraform_remote_state" "volume" {
   backend = "s3"
@@ -20,57 +22,88 @@ data "terraform_remote_state" "volume" {
   }
 }
 
-resource "aws_key_pair" "admin" {
-  key_name   = "minecraft-admin-key"
-  public_key = file(var.ec2_public_key)
+resource "aws_efs_file_system" "minecraft" {}
+
+resource "aws_efs_mount_target" "minecraft" {
+  file_system_id  = aws_efs_file_system.minecraft.id
+  subnet_id       = aws_subnet.private.id
+  security_groups = [aws_security_group.efs.id]
 }
 
-resource "aws_instance" "web" {
-  ami                         = "ami-0d728fd4e52be968f"
-  instance_type               = var.instance_type
-  vpc_security_group_ids      = [aws_security_group.minecraft.id]
-  associate_public_ip_address = true
-  subnet_id                   = aws_subnet.public.id
-  availability_zone           = var.aws_az
-  key_name                    = aws_key_pair.admin.key_name
+resource "aws_ecs_cluster" "minecraft" {
+  name = "minecraft"
+}
 
-  tags = {
-    Name = "minecraft"
+resource "aws_ecs_cluster_capacity_providers" "minecraft" {
+  cluster_name = aws_ecs_cluster.minecraft.name
+
+  capacity_providers = ["FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    base              = 1
+    weight            = 100
+    capacity_provider = "FARGATE_SPOT"
   }
+}
 
-  user_data = templatefile("scripts/startup.sh", local.script_variables)
-  depends_on = [aws_internet_gateway.gateway]
+resource "aws_ecs_service" "minecraft" {
+  name          = "minecraft"
+  cluster       = aws_ecs_cluster.minecraft.id
+  desired_count = 1
+  launch_type   = "FARGATE"
 
-  provisioner "file" {
-    content     = templatefile("scripts/server.properties", local.server_properties)
-    destination = "/tmp/server.properties"
+  task_definition = aws_ecs_task_definition.minecraft.arn
 
-    connection {
-      user        = "ec2-user"
-      private_key = file(var.ec2_private_key)
-      host        = self.public_ip
+  network_configuration {
+    subnets = [aws_subnet.public.id]
+    security_groups = [aws_security_group.efs.id, aws_security_group.minecraft.id]
+    assign_public_ip = true
+  }
+}
+
+data "aws_iam_policy" "ecs" {
+  name = "AmazonECSTaskExecutionRolePolicy"
+}
+
+data "aws_iam_policy" "log" {
+  name = "CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecsTaskExecutionRole"
+  managed_policy_arns = [data.aws_iam_policy.ecs.arn, data.aws_iam_policy.log.arn]
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_ecs_task_definition" "minecraft" {
+  family                   = "minecraft"
+  network_mode             = "awsvpc"
+  container_definitions    = file("task-definitions/minecraft.json")
+
+  requires_compatibilities = ["FARGATE"]
+  memory                   = 2048
+  cpu                      = 1024
+
+  execution_role_arn       = resource.aws_iam_role.ecs_task_execution_role.arn
+
+  volume {
+    name = "minecraft"
+
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.minecraft.id
     }
-  }
-}
-
-resource "aws_volume_attachment" "ebs_att" {
-  device_name  = var.device_name
-  skip_destroy = true
-  volume_id    = data.terraform_remote_state.volume.outputs.ebs_volume_id
-  instance_id  = aws_instance.web.id
-}
-
-locals {
-  server_properties = {
-    motd = "A Minecraft Server"
-    rcon_password = var.rcon_password
-  }
-  script_variables = {
-    device_name = var.device_name
-    min = var.min_memory
-    max = var.max_memory
-    discord_bot_token  = var.discord_bot_token
-    discord_channel_id = var.discord_channel_id
-    mc_version         = var.mc_version
   }
 }

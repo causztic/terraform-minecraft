@@ -15,7 +15,7 @@ terraform {
   extra_arguments "common_vars" {
     commands = get_terraform_commands_that_need_vars()
 
-    arguments = [ "-var-file=../terraform.tfvars" ]
+    # arguments = [ "-var-file=../terraform.tfvars" ]
   }
 }
 
@@ -41,11 +41,11 @@ generate "versions" {
     required_providers {
       aws = {
         source  = "hashicorp/aws"
-        version = "~> 3.21"
+        version = "~> 4.23"
       }
       cloudflare = {
         source  = "cloudflare/cloudflare"
-        version = "~> 2.0"
+        version = "~> 3.20"
       }
     }
   }
