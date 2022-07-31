@@ -27,7 +27,8 @@ resource "aws_efs_file_system" "minecraft" {}
 
 resource "aws_efs_mount_target" "minecraft" {
   file_system_id  = aws_efs_file_system.minecraft.id
-  subnet_id       = aws_subnet.public.id
+  subnet_id       = aws_subnet.private.id
+  security_groups = [aws_security_group.efs.id]
 }
 
 resource "aws_ecs_cluster" "minecraft" {
@@ -56,7 +57,7 @@ resource "aws_ecs_service" "minecraft" {
 
   network_configuration {
     subnets = [aws_subnet.public.id]
-    security_groups = [aws_security_group.minecraft.id]
+    security_groups = [aws_security_group.efs.id, aws_security_group.minecraft.id]
     assign_public_ip = true
   }
 }

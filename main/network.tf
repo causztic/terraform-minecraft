@@ -8,8 +8,14 @@ resource "aws_vpc" "vpc" {
   }
 }
 
-resource "aws_internet_gateway" "gateway" {
+# public subnet
+resource "aws_internet_gateway" "ig" {
   vpc_id = aws_vpc.vpc.id
+}
+
+resource "aws_eip" "nat_eip" {
+  vpc        = true
+  depends_on = [aws_internet_gateway.ig]
 }
 
 resource "aws_subnet" "public" {
@@ -18,24 +24,67 @@ resource "aws_subnet" "public" {
   availability_zone = "ap-southeast-1a"
 }
 
-# resource "aws_subnet" "private" {
-#   vpc_id            = aws_vpc.vpc.id
-#   cidr_block        = "10.0.0.128/27"
-#   availability_zone = "ap-southeast-1a"
-# }
-
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
+}
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gateway.id
-  }
+resource "aws_route" "public_internet_gateway" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.ig.id
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public.id
 }
 
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
+}
+
+# private subnet
+
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.0.128/27"
+  availability_zone = "ap-southeast-1a"
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.vpc.id
+}
+
+resource "aws_route" "private_nat_gateway" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat.id
+}
+
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_security_group" "efs" {
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    description = "NFS"
+    from_port = 2049
+    to_port = 2049
+    protocol = "tcp"
+    cidr_blocks = [aws_subnet.public.cidr_block]
+  }
+
+  egress {
+    description = "allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "minecraft" {
@@ -48,15 +97,6 @@ resource "aws_security_group" "minecraft" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  ingress {
-    description = "NFS"
-    from_port = 2049
-    to_port = 2049
-    protocol = "tcp"
-    cidr_blocks = [aws_subnet.public.cidr_block]
-  }
-
 
   ingress {
     description = "ingress for minecraft"
